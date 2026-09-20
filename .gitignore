@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.env
+*.log
+*.tsbuildinfo
+.tsc-out/
+
+# WhatsApp auth session (sensitive, never commit)
+backend/auth_info_baileys/
+
+# All local runtime data (SQLite db + WAL/SHM files, downloaded media) —
+# real message content and files from linked WhatsApp groups, never commit
+backend/data/
