@@ -7,8 +7,8 @@ function optional(name: string, fallback: string): string {
 export const env = {
   port: Number(optional("PORT", "4000")),
   pairingNumber: process.env.PAIRING_NUMBER?.trim() || undefined,
-  authDir: optional("AUTH_DIR", "./auth_info_baileys"),
-  dbPath: optional("DB_PATH", "./data/bot.sqlite"),
+  mongoUri: optional("MONGODB_URI", "mongodb://localhost:27017"),
+  mongoDbName: optional("MONGODB_DB_NAME", "whatsapp_community_bot"),
   mediaDir: optional("MEDIA_DIR", "./data/media"),
   geminiApiKey: process.env.GEMINI_API_KEY?.trim() || undefined,
   digestTimezone: optional("DIGEST_TIMEZONE", "Africa/Lagos"),

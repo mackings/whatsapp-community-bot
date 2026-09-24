@@ -1,22 +1,27 @@
-import { db } from "./client.js";
+import { getDb } from "./mongoClient.js";
 
 export type DigestPeriod = "morning" | "evening";
 
-const upsertStmt = db.prepare(`
-  INSERT INTO digest_log (group_jid, period, last_sent_date)
-  VALUES (@groupJid, @period, @date)
-  ON CONFLICT(group_jid, period) DO UPDATE SET last_sent_date = excluded.last_sent_date
-`);
-
-export function getLastSentDate(groupJid: string, period: DigestPeriod): string | null {
-  const row = db
-    .prepare(
-      "SELECT last_sent_date as lastSentDate FROM digest_log WHERE group_jid = @groupJid AND period = @period"
-    )
-    .get({ groupJid, period }) as { lastSentDate: string } | undefined;
-  return row?.lastSentDate ?? null;
+interface DigestLogDoc {
+  _id: string; // `${groupJid}:${period}`
+  lastSentDate: string;
 }
 
-export function setLastSentDate(groupJid: string, period: DigestPeriod, date: string): void {
-  upsertStmt.run({ groupJid, period, date });
+const digestLog = () => getDb().collection<DigestLogDoc>("digest_log");
+
+function docId(groupJid: string, period: DigestPeriod): string {
+  return `${groupJid}:${period}`;
+}
+
+export async function getLastSentDate(groupJid: string, period: DigestPeriod): Promise<string | null> {
+  const doc = await digestLog().findOne({ _id: docId(groupJid, period) });
+  return doc?.lastSentDate ?? null;
+}
+
+export async function setLastSentDate(groupJid: string, period: DigestPeriod, date: string): Promise<void> {
+  await digestLog().updateOne(
+    { _id: docId(groupJid, period) },
+    { $set: { lastSentDate: date } },
+    { upsert: true }
+  );
 }

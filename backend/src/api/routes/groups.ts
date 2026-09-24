@@ -9,10 +9,10 @@ import type { GroupSummary } from "../../types/index.js";
 
 export const groupsRouter = Router();
 
-groupsRouter.get("/", (_req, res) => {
-  const groups = listGroups();
-  const counts = getCategoryCountsByGroup(["document", "meeting", "announcement"]);
-  const nextMeetings = getNextMeetingByGroup(Date.now());
+groupsRouter.get("/", async (_req, res) => {
+  const groups = await listGroups();
+  const counts = await getCategoryCountsByGroup(["document", "meeting", "announcement"]);
+  const nextMeetings = await getNextMeetingByGroup(Date.now());
 
   const summaries: GroupSummary[] = groups.map((group) => ({
     ...group,
@@ -25,7 +25,7 @@ groupsRouter.get("/", (_req, res) => {
   res.json({ groups: summaries });
 });
 
-groupsRouter.patch("/:jid/settings", (req, res) => {
+groupsRouter.patch("/:jid/settings", async (req, res) => {
   const { jid } = req.params;
   const { learnEnabled, respondEnabled } = req.body ?? {};
 
@@ -34,6 +34,6 @@ groupsRouter.patch("/:jid/settings", (req, res) => {
     return;
   }
 
-  setGroupFlags(jid, { learnEnabled, respondEnabled });
+  await setGroupFlags(jid, { learnEnabled, respondEnabled });
   res.json({ ok: true });
 });

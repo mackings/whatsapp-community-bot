@@ -13,11 +13,11 @@ export function getCachedGroupMetadata(jid: string): GroupMetadata | undefined {
   return cache.get(jid);
 }
 
-function persist(metadata: GroupMetadata): void {
+async function persist(metadata: GroupMetadata): Promise<void> {
   // Some groups (e.g. a WhatsApp Community's parent group) can have no
   // subject set — fall back to the jid rather than violate the NOT NULL
   // constraint and crash the process.
-  saveGroup({
+  await saveGroup({
     jid: metadata.id,
     name: metadata.subject || metadata.id,
     participantCount: metadata.participants.length,
@@ -31,7 +31,7 @@ export function primeGroupCache(sock: WASocket) {
     for (const metadata of Object.values(groups)) {
       try {
         cache.set(metadata.id, metadata);
-        persist(metadata);
+        await persist(metadata);
       } catch (error) {
         logger.error({ error, groupJid: metadata.id }, "failed to persist group metadata");
       }
@@ -46,7 +46,7 @@ export function watchGroupUpdates(sock: WASocket): void {
     try {
       const metadata = await sock.groupMetadata(event.id);
       cache.set(metadata.id, metadata);
-      persist(metadata);
+      await persist(metadata);
     } catch (error) {
       logger.error({ error, groupJid: event.id }, "failed to handle groups.update");
     }
@@ -56,7 +56,7 @@ export function watchGroupUpdates(sock: WASocket): void {
     try {
       const metadata = await sock.groupMetadata(event.id);
       cache.set(metadata.id, metadata);
-      persist(metadata);
+      await persist(metadata);
     } catch (error) {
       logger.error({ error, groupJid: event.id }, "failed to handle group-participants.update");
     }

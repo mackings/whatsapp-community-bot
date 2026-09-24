@@ -8,13 +8,13 @@ import type { GroupAdmin } from "../types/index.js";
  * only carries JIDs, not names. Falls back to the JID's number if they've
  * never spoken in the group.
  */
-export function getGroupAdmins(groupJid: string): GroupAdmin[] {
+export async function getGroupAdmins(groupJid: string): Promise<GroupAdmin[]> {
   const metadata = getCachedGroupMetadata(groupJid);
   if (!metadata) return [];
 
   const adminJids = metadata.participants.filter((p) => p.admin).map((p) => p.id);
   if (adminJids.length === 0) return [];
 
-  const names = getLatestSenderNames(groupJid, adminJids);
+  const names = await getLatestSenderNames(groupJid, adminJids);
   return adminJids.map((jid) => ({ jid, name: names[jid] ?? jid.split("@")[0] }));
 }

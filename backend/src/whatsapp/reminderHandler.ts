@@ -24,7 +24,7 @@ export function registerReminderHandler(sock: WASocket): void {
       const jid = message.key.remoteJid;
       if (!jid || !jid.endsWith(GROUP_SUFFIX)) continue;
       if (!message.message || message.key.fromMe) continue;
-      if (!getGroupFlags(jid)?.respondEnabled) continue;
+      if (!(await getGroupFlags(jid))?.respondEnabled) continue;
       if (!isBotMentioned(message, sock)) continue;
 
       const contextInfo = message.message.extendedTextMessage?.contextInfo;
@@ -34,7 +34,7 @@ export function registerReminderHandler(sock: WASocket): void {
 
       try {
         const { text: replyText } = extractMessageText(message);
-        const stored = getMessageById(quotedId);
+        const stored = await getMessageById(quotedId);
         const quotedText =
           stored?.text || quotedMessage.conversation || quotedMessage.extendedTextMessage?.text || "";
         if (!quotedText) continue;
@@ -60,7 +60,7 @@ export function registerReminderHandler(sock: WASocket): void {
         const groupMetadata = getCachedGroupMetadata(jid);
         const eventDescription = extraction.event ?? quotedText;
 
-        createReminder({
+        await createReminder({
           groupJid: jid,
           groupName: groupMetadata?.subject ?? jid,
           userJid: message.key.participant ?? jid,

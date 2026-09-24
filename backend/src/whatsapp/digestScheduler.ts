@@ -41,9 +41,9 @@ export function startDigestScheduler(): void {
 
     const todayKey = toDateKey(parts.year, parts.month, parts.day);
 
-    for (const group of listGroups()) {
+    for (const group of await listGroups()) {
       if (!group.respondEnabled) continue;
-      if (getLastSentDate(group.jid, period) === todayKey) continue;
+      if ((await getLastSentDate(group.jid, period)) === todayKey) continue;
 
       let rangeStart: number;
       let rangeEnd: number;
@@ -59,9 +59,9 @@ export function startDigestScheduler(): void {
         periodLabel = "yesterday";
       }
 
-      const history = listMessages({ groupJid: group.jid, after: rangeStart, before: rangeEnd, limit: 2000 });
+      const history = await listMessages({ groupJid: group.jid, after: rangeStart, before: rangeEnd, limit: 2000 });
       if (history.length === 0) {
-        setLastSentDate(group.jid, period, todayKey); // quiet day — mark done, don't post an empty digest
+        await setLastSentDate(group.jid, period, todayKey); // quiet day — mark done, don't post an empty digest
         continue;
       }
 
@@ -87,7 +87,7 @@ export function startDigestScheduler(): void {
           mentions: participantJids,
         });
 
-        setLastSentDate(group.jid, period, todayKey);
+        await setLastSentDate(group.jid, period, todayKey);
       } catch (error) {
         logger.error({ error, groupJid: group.jid, period }, "failed to send daily digest");
       }

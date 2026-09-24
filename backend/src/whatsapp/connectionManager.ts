@@ -1,8 +1,7 @@
-import { rmSync } from "node:fs";
 import type { WASocket } from "@whiskeysockets/baileys";
 import { startWhatsAppConnection, type StartOptions } from "./socket.js";
 import { getActiveSocket } from "./activeSocket.js";
-import { env } from "../config/env.js";
+import { clearAuthState } from "./mongoAuthState.js";
 import { logger } from "./logger.js";
 
 let currentOptions: StartOptions = {};
@@ -33,6 +32,6 @@ export async function logoutAndRelink(): Promise<void> {
     }
   }
 
-  rmSync(env.authDir, { recursive: true, force: true });
+  await clearAuthState();
   await startWhatsAppConnection(currentOptions);
 }

@@ -4,7 +4,7 @@ import { CATEGORIES, type Category } from "../../types/index.js";
 
 export const messagesRouter = Router();
 
-messagesRouter.get("/", (req, res) => {
+messagesRouter.get("/", async (req, res) => {
   const { groupJid, category, before } = req.query;
 
   if (category && !CATEGORIES.includes(category as Category)) {
@@ -12,7 +12,7 @@ messagesRouter.get("/", (req, res) => {
     return;
   }
 
-  const messages = listMessages({
+  const messages = await listMessages({
     groupJid: typeof groupJid === "string" ? groupJid : undefined,
     category: typeof category === "string" ? (category as Category) : undefined,
     before: before ? Number(before) : undefined,

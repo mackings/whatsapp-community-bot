@@ -1,4 +1,4 @@
-import "./db/client.js"; // ensures schema exists before anything else runs
+import { connectMongo } from "./db/mongoClient.js";
 import { initConnection } from "./whatsapp/connectionManager.js";
 import { registerMessageHandler } from "./whatsapp/messageHandler.js";
 import { registerMentionHandler } from "./whatsapp/mentionHandler.js";
@@ -12,6 +12,8 @@ import { startApiServer } from "./api/server.js";
 import { logger } from "./whatsapp/logger.js";
 
 async function main() {
+  await connectMongo();
+
   let connectionStatus = "connecting";
   const realtime = startApiServer(() => connectionStatus);
   startReminderScheduler();

@@ -8,22 +8,22 @@ pushRouter.get("/public-key", (_req, res) => {
   res.json({ publicKey: env.vapidPublicKey ?? null });
 });
 
-pushRouter.post("/subscribe", (req, res) => {
+pushRouter.post("/subscribe", async (req, res) => {
   const subscription = req.body;
   if (!subscription?.endpoint) {
     res.status(400).json({ error: "invalid subscription" });
     return;
   }
-  saveSubscription(subscription);
+  await saveSubscription(subscription);
   res.status(201).json({ ok: true });
 });
 
-pushRouter.post("/unsubscribe", (req, res) => {
+pushRouter.post("/unsubscribe", async (req, res) => {
   const { endpoint } = req.body ?? {};
   if (!endpoint) {
     res.status(400).json({ error: "endpoint required" });
     return;
   }
-  removeSubscription(endpoint);
+  await removeSubscription(endpoint);
   res.json({ ok: true });
 });

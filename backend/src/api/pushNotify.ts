@@ -12,7 +12,7 @@ if (isConfigured) {
 export async function sendPushToAllSubscribers(payload: { title: string; body: string }): Promise<void> {
   if (!isConfigured) return;
 
-  const subscriptions = listSubscriptions();
+  const subscriptions = await listSubscriptions();
   const json = JSON.stringify(payload);
 
   await Promise.all(
@@ -22,7 +22,7 @@ export async function sendPushToAllSubscribers(payload: { title: string; body: s
       } catch (error) {
         // 404/410 means the browser unsubscribed or the subscription expired
         if (error instanceof WebPushError && (error.statusCode === 404 || error.statusCode === 410)) {
-          removeSubscription(subscription.endpoint);
+          await removeSubscription(subscription.endpoint);
         } else {
           logger.error({ error }, "failed to send push notification");
         }

@@ -1,26 +1,27 @@
-import { db } from "./client.js";
+import { getDb } from "./mongoClient.js";
 import type { PushSubscription as WebPushSubscription } from "web-push";
 
-const upsertStmt = db.prepare(`
-  INSERT OR REPLACE INTO push_subscriptions (endpoint, subscription_json, created_at)
-  VALUES (@endpoint, @subscriptionJson, @createdAt)
-`);
-
-export function saveSubscription(subscription: WebPushSubscription): void {
-  upsertStmt.run({
-    endpoint: subscription.endpoint,
-    subscriptionJson: JSON.stringify(subscription),
-    createdAt: Date.now(),
-  });
+interface SubscriptionDoc {
+  _id: string; // endpoint
+  subscription: WebPushSubscription;
+  createdAt: number;
 }
 
-export function removeSubscription(endpoint: string): void {
-  db.prepare("DELETE FROM push_subscriptions WHERE endpoint = @endpoint").run({ endpoint });
+const subscriptions = () => getDb().collection<SubscriptionDoc>("push_subscriptions");
+
+export async function saveSubscription(subscription: WebPushSubscription): Promise<void> {
+  await subscriptions().replaceOne(
+    { _id: subscription.endpoint },
+    { subscription, createdAt: Date.now() },
+    { upsert: true }
+  );
 }
 
-export function listSubscriptions(): WebPushSubscription[] {
-  const rows = db.prepare("SELECT subscription_json as subscriptionJson FROM push_subscriptions").all() as Array<{
-    subscriptionJson: string;
-  }>;
-  return rows.map((row) => JSON.parse(row.subscriptionJson) as WebPushSubscription);
+export async function removeSubscription(endpoint: string): Promise<void> {
+  await subscriptions().deleteOne({ _id: endpoint });
+}
+
+export async function listSubscriptions(): Promise<WebPushSubscription[]> {
+  const docs = await subscriptions().find({}).toArray();
+  return docs.map((doc) => doc.subscription);
 }

@@ -3,16 +3,15 @@ import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
-  useMultiFileAuthState,
 } from "@whiskeysockets/baileys";
 import type { ConnectionState, WASocket } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
-import { rmSync } from "node:fs";
 import qrcodeTerminal from "qrcode-terminal";
 import QRCode from "qrcode";
 import { env } from "../config/env.js";
 import { logger } from "./logger.js";
 import { getCachedGroupMetadata, primeGroupCache, watchGroupUpdates } from "./groupCache.js";
+import { useMongoDBAuthState, clearAuthState } from "./mongoAuthState.js";
 
 export type ConnectionStatus = "connecting" | "open" | "closed";
 
@@ -23,7 +22,7 @@ export interface StartOptions {
 }
 
 export async function startWhatsAppConnection(options: StartOptions = {}): Promise<WASocket> {
-  const { state, saveCreds } = await useMultiFileAuthState(env.authDir);
+  const { state, saveCreds } = await useMongoDBAuthState();
   const { version } = await fetchLatestBaileysVersion();
 
   const sock = makeWASocket({
@@ -95,7 +94,7 @@ export async function startWhatsAppConnection(options: StartOptions = {}): Promi
         }, 2000);
       } else {
         logger.error("logged out from WhatsApp — clearing session and starting a fresh link");
-        rmSync(env.authDir, { recursive: true, force: true });
+        await clearAuthState();
         startWhatsAppConnection(options).catch((error) =>
           logger.error({ error }, "restart after logout failed")
         );

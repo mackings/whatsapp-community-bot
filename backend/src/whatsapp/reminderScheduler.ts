@@ -14,15 +14,15 @@ export function startReminderScheduler(): void {
     const sock = getActiveSocket();
     if (!sock) return;
 
-    for (const reminder of getDueReminders(Date.now())) {
+    for (const reminder of await getDueReminders(Date.now())) {
       try {
         await sock.sendMessage(reminder.userJid, {
           text: `Reminder: ${reminder.eventDescription}\n(from ${reminder.groupName})`,
         });
-        markReminderStatus(reminder.id, "sent");
+        await markReminderStatus(reminder.id, "sent");
       } catch (error) {
         logger.error({ error, reminderId: reminder.id }, "failed to send reminder DM");
-        markReminderStatus(reminder.id, "failed");
+        await markReminderStatus(reminder.id, "failed");
       }
     }
   }, POLL_INTERVAL_MS);

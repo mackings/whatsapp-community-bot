@@ -26,20 +26,20 @@ export function registerMentionHandler(sock: WASocket): void {
       const jid = message.key.remoteJid;
       if (!jid || !jid.endsWith(GROUP_SUFFIX)) continue;
       if (!message.message || message.key.fromMe) continue;
-      if (!getGroupFlags(jid)?.respondEnabled) continue;
+      if (!(await getGroupFlags(jid))?.respondEnabled) continue;
       if (!isBotMentioned(message, sock)) continue;
 
       try {
         const { text } = extractMessageText(message);
         const groupMetadata = getCachedGroupMetadata(jid);
-        const history = listMessages({ groupJid: jid, limit: HISTORY_LIMIT });
+        const history = await listMessages({ groupJid: jid, limit: HISTORY_LIMIT });
 
         await sock.sendPresenceUpdate("composing", jid);
         const reply = await generateRecap({
           groupName: groupMetadata?.subject ?? jid,
           question: text,
           history,
-          admins: getGroupAdmins(jid),
+          admins: await getGroupAdmins(jid),
         });
 
         if (reply) {

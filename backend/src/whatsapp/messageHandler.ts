@@ -24,7 +24,7 @@ export function registerMessageHandler(
       if (!jid || !jid.endsWith(GROUP_SUFFIX)) continue; // only care about community/group chats
       if (!message.message) continue; // e.g. reactions, protocol messages
 
-      const flags = getGroupFlags(jid);
+      const flags = await getGroupFlags(jid);
       if (!flags?.learnEnabled && !flags?.respondEnabled) continue; // not an allowlisted group
 
       try {
@@ -61,7 +61,7 @@ export function registerMessageHandler(
           meetingTime,
         };
 
-        saveMessage(stored);
+        await saveMessage(stored);
         onNewMessage(stored);
 
         if (category === "announcement") {

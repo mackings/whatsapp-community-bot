@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { db } from "./client.js";
+import { getDb } from "./mongoClient.js";
 
 export type ReminderStatus = "pending" | "sent" | "failed";
 
@@ -15,36 +15,36 @@ export interface Reminder {
   createdAt: number;
 }
 
-const insertStmt = db.prepare(`
-  INSERT INTO reminders
-    (id, group_jid, group_name, user_jid, event_description, event_time, remind_at, status, created_at)
-  VALUES
-    (@id, @groupJid, @groupName, @userJid, @eventDescription, @eventTime, @remindAt, @status, @createdAt)
-`);
+interface ReminderDoc extends Omit<Reminder, "id"> {
+  _id: string;
+}
 
-export function createReminder(input: Omit<Reminder, "id" | "status" | "createdAt">): Reminder {
+const reminders = () => getDb().collection<ReminderDoc>("reminders");
+
+function toReminder(doc: ReminderDoc): Reminder {
+  const { _id, ...rest } = doc;
+  return { id: _id, ...rest };
+}
+
+export async function createReminder(input: Omit<Reminder, "id" | "status" | "createdAt">): Promise<Reminder> {
   const reminder: Reminder = {
     ...input,
     id: randomUUID(),
     status: "pending",
     createdAt: Date.now(),
   };
-  insertStmt.run(reminder);
+  const { id, ...rest } = reminder;
+  await reminders().insertOne({ _id: id, ...rest });
   return reminder;
 }
 
-export function getDueReminders(now: number): Reminder[] {
-  return db
-    .prepare(
-      `SELECT id, group_jid as groupJid, group_name as groupName, user_jid as userJid,
-              event_description as eventDescription, event_time as eventTime,
-              remind_at as remindAt, status, created_at as createdAt
-       FROM reminders
-       WHERE status = 'pending' AND remind_at <= @now`
-    )
-    .all({ now }) as Reminder[];
+export async function getDueReminders(now: number): Promise<Reminder[]> {
+  const docs = await reminders()
+    .find({ status: "pending", remindAt: { $lte: now } })
+    .toArray();
+  return docs.map(toReminder);
 }
 
-export function markReminderStatus(id: string, status: ReminderStatus): void {
-  db.prepare("UPDATE reminders SET status = @status WHERE id = @id").run({ id, status });
+export async function markReminderStatus(id: string, status: ReminderStatus): Promise<void> {
+  await reminders().updateOne({ _id: id }, { $set: { status } });
 }
