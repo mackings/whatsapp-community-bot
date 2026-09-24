@@ -20,9 +20,30 @@ export interface StartOptions {
   onQrCode?: (dataUrl: string | null) => void;
 }
 
+const VERSION_FETCH_TIMEOUT_MS = 5_000;
+
+// fetchLatestBaileysVersion() hits a GitHub raw URL with no timeout of its
+// own — if that network call ever hangs (as it did once in production), it
+// silently blocks the whole connection forever before a socket is even
+// created. Race it against a timeout and fall back to Baileys' own bundled
+// default version (same one it ships if you never call this at all).
+async function fetchVersionWithTimeout(): Promise<[number, number, number] | undefined> {
+  try {
+    const { version } = await Promise.race([
+      fetchLatestBaileysVersion(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("fetchLatestBaileysVersion timed out")), VERSION_FETCH_TIMEOUT_MS)
+      ),
+    ]);
+    return version;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function startWhatsAppConnection(options: StartOptions = {}): Promise<WASocket> {
   const { state, saveCreds } = await useMongoDBAuthState();
-  const { version } = await fetchLatestBaileysVersion();
+  const version = await fetchVersionWithTimeout();
 
   const sock = makeWASocket({
     version,
