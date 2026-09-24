@@ -18,10 +18,22 @@ function mergeByCategory(
   });
 }
 
+function mergeAll(history: StoredMessage[], live: StoredMessage[], groupJid: string): StoredMessage[] {
+  const merged = [...live, ...history];
+  const seen = new Set<string>();
+  return merged.filter((m) => {
+    if (m.groupJid !== groupJid) return false;
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+}
+
 export function useGroupContent(groupJid: string, liveMessages: StoredMessage[]) {
   const [meetingsHistory, setMeetingsHistory] = useState<StoredMessage[]>([]);
   const [documentsHistory, setDocumentsHistory] = useState<StoredMessage[]>([]);
   const [announcementsHistory, setAnnouncementsHistory] = useState<StoredMessage[]>([]);
+  const [allHistory, setAllHistory] = useState<StoredMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,12 +43,14 @@ export function useGroupContent(groupJid: string, liveMessages: StoredMessage[])
       fetchMessages({ groupJid, category: "meeting", limit: 100 }),
       fetchMessages({ groupJid, category: "document", limit: 100 }),
       fetchMessages({ groupJid, category: "announcement", limit: 50 }),
+      fetchMessages({ groupJid, limit: 200 }),
     ])
-      .then(([m, d, a]) => {
+      .then(([m, d, a, all]) => {
         if (!active) return;
         setMeetingsHistory(m.messages);
         setDocumentsHistory(d.messages);
         setAnnouncementsHistory(a.messages);
+        setAllHistory(all.messages);
       })
       .finally(() => active && setLoading(false));
     return () => {
@@ -56,6 +70,10 @@ export function useGroupContent(groupJid: string, liveMessages: StoredMessage[])
     () => mergeByCategory(announcementsHistory, liveMessages, groupJid, "announcement"),
     [announcementsHistory, liveMessages, groupJid]
   );
+  const allMessages = useMemo(
+    () => mergeAll(allHistory, liveMessages, groupJid),
+    [allHistory, liveMessages, groupJid]
+  );
 
-  return { meetings, documents, announcements, loading };
+  return { meetings, documents, announcements, allMessages, loading };
 }

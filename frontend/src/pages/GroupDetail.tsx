@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import { MeetingsList } from "../components/groups/MeetingsList";
 import { DocumentsList } from "../components/groups/DocumentsList";
 import { AnnouncementsList } from "../components/groups/AnnouncementsList";
+import { ActivityFeed } from "../components/groups/ActivityFeed";
 import { useGroupContent } from "../hooks/useGroupContent";
 import type { GroupSummary, StoredMessage } from "../types";
 
@@ -14,7 +15,7 @@ export function GroupDetail({
   liveMessages: StoredMessage[];
   onBack: () => void;
 }) {
-  const { meetings, documents, announcements, loading } = useGroupContent(group.jid, liveMessages);
+  const { meetings, documents, announcements, allMessages, loading } = useGroupContent(group.jid, liveMessages);
 
   return (
     <div className="flex flex-col gap-6">
@@ -30,6 +31,11 @@ export function GroupDetail({
         <h1 className="text-xl font-semibold text-slate-100">{group.name}</h1>
         <p className="text-sm text-slate-500">{group.participantCount} participants</p>
       </div>
+
+      <section>
+        <h2 className="mb-3 text-sm font-medium text-slate-300">All activity</h2>
+        <ActivityFeed messages={allMessages} loading={loading} />
+      </section>
 
       <section>
         <h2 className="mb-3 text-sm font-medium text-slate-300">Meetings</h2>
