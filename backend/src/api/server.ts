@@ -16,6 +16,12 @@ export function startApiServer(getConnectionStatus: () => string): Broadcaster {
   app.use(express.json());
   app.use(logApiCalls);
 
+  // Render (and anyone poking the bare URL) hits "/" for health checks —
+  // answer it directly so that doesn't show up as a stream of fake failures.
+  app.get("/", (_req, res) => {
+    res.json({ ok: true, connection: getConnectionStatus() });
+  });
+
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, connection: getConnectionStatus() });
   });
