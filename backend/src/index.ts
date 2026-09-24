@@ -9,7 +9,7 @@ import { startDigestScheduler } from "./whatsapp/digestScheduler.js";
 import { setActiveSocket } from "./whatsapp/activeSocket.js";
 import { createCategorizer } from "./categorizer/index.js";
 import { startApiServer } from "./api/server.js";
-import { logger } from "./whatsapp/logger.js";
+import { apiLogger } from "./api/requestLogger.js";
 
 async function main() {
   await connectMongo();
@@ -42,6 +42,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  logger.error({ error }, "fatal error starting bot");
+  apiLogger.error({ error }, "fatal error starting bot");
   process.exit(1);
 });

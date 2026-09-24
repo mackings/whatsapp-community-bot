@@ -6,7 +6,6 @@ import makeWASocket, {
 } from "@whiskeysockets/baileys";
 import type { ConnectionState, WASocket } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
-import qrcodeTerminal from "qrcode-terminal";
 import QRCode from "qrcode";
 import { env } from "../config/env.js";
 import { logger } from "./logger.js";
@@ -67,7 +66,6 @@ export async function startWhatsAppConnection(options: StartOptions = {}): Promi
     const { connection, lastDisconnect, qr } = update;
 
     if (qr && !env.pairingNumber) {
-      qrcodeTerminal.generate(qr, { small: true }); // fallback for headless/terminal use
       options.onQrCode?.(await QRCode.toDataURL(qr, { margin: 1, scale: 6 }));
     }
 

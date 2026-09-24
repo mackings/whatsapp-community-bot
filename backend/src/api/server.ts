@@ -7,13 +7,14 @@ import { statsRouter } from "./routes/stats.js";
 import { pushRouter } from "./routes/push.js";
 import { authRouter } from "./routes/auth.js";
 import { attachRealtimeServer, type Broadcaster } from "./realtime.js";
+import { logApiCalls, apiLogger } from "./requestLogger.js";
 import { env } from "../config/env.js";
-import { logger } from "../whatsapp/logger.js";
 
 export function startApiServer(getConnectionStatus: () => string): Broadcaster {
   const app = express();
   app.use(cors());
   app.use(express.json());
+  app.use(logApiCalls);
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, connection: getConnectionStatus() });
@@ -30,7 +31,7 @@ export function startApiServer(getConnectionStatus: () => string): Broadcaster {
   const broadcaster = attachRealtimeServer(httpServer);
 
   httpServer.listen(env.port, () => {
-    logger.info(`API server (+ WebSocket at /ws) listening on :${env.port}`);
+    apiLogger.info(`API server (+ WebSocket at /ws) listening on :${env.port}`);
   });
 
   return broadcaster;
