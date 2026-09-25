@@ -51,21 +51,23 @@ export function registerMentionHandler(sock: WASocket): void {
           if (quotedText) effectiveText = `${quotedText}\n${text}`.trim();
         }
 
-        // PromptCraft's startup review takes priority over the generic recap
-        // when this mention is (or continues) a pitch — a founder shouldn't
-        // get both a recap AND a review reply for the same message. Gated
-        // per-group separately from respondEnabled so it can be piloted in
-        // one test group without changing recap/auto-answer elsewhere.
-        const reviewResult = flags.startupReviewEnabled
-          ? await handleStartupReviewTurn({
-              chatJid: jid,
-              senderJid,
-              senderName: message.pushName ?? "Unknown",
-              text: effectiveText,
-            })
-          : null;
-        if (reviewResult) {
-          await sock.sendMessage(jid, { text: reviewResult.reply }, { quoted: message });
+        // In a PromptCraft-enabled group, mentioning the bot is always a
+        // personal, one-on-one thread — never fall back to the cross-person
+        // recap here, since that pulls in *everyone's* recent messages and
+        // reads as the bot mashing two different people's pitches together
+        // into one reply. If this sender's own history/text doesn't read as
+        // (or continue) a pitch, ask them directly instead of guessing.
+        if (flags.startupReviewEnabled) {
+          const reviewResult = await handleStartupReviewTurn({
+            chatJid: jid,
+            senderJid,
+            senderName: message.pushName ?? "Unknown",
+            text: effectiveText,
+          });
+
+          const reply =
+            reviewResult?.reply ?? "Tell me about your startup — what problem it solves and who it's for.";
+          await sock.sendMessage(jid, { text: reply }, { quoted: message });
           continue;
         }
 

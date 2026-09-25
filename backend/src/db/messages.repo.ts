@@ -49,6 +49,7 @@ export async function getLatestSenderNames(groupJid: string, senderJids: string[
 
 interface ListFilters {
   groupJid?: string;
+  senderJid?: string;
   category?: Category;
   limit?: number;
   before?: number;
@@ -58,6 +59,7 @@ interface ListFilters {
 export async function listMessages(filters: ListFilters): Promise<StoredMessage[]> {
   const query: Record<string, unknown> = {};
   if (filters.groupJid) query.groupJid = filters.groupJid;
+  if (filters.senderJid) query.senderJid = filters.senderJid;
   if (filters.category) query.category = filters.category;
   if (filters.before || filters.after) {
     query.timestamp = {
