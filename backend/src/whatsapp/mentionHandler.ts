@@ -63,6 +63,7 @@ export function registerMentionHandler(sock: WASocket): void {
             senderJid,
             senderName: message.pushName ?? "Unknown",
             text: effectiveText,
+            groupName: getCachedGroupMetadata(jid)?.subject ?? jid,
           });
 
           const reply =

@@ -1,4 +1,4 @@
-import { detectStartupPitch, continueInterview } from "../assistant/startupReview.js";
+import { detectStartupPitch, continueInterview, respondToNonPitch } from "../assistant/startupReview.js";
 import {
   getActiveReview,
   startReview,
@@ -55,6 +55,7 @@ export async function handleStartupReviewTurn(params: {
   senderJid: string;
   senderName: string;
   text: string;
+  groupName?: string;
 }): Promise<StartupReviewOutcome> {
   if (!params.text.trim()) return { status: "no-pitch", isFirstContact: false };
 
@@ -79,6 +80,23 @@ export async function handleStartupReviewTurn(params: {
   const looksLikePitch = await detectStartupPitch(combinedText);
   if (!looksLikePitch) {
     if (isFirstContact) await markGreeted(params.chatJid, params.senderJid, params.senderName);
+
+    // Not every mention is a pitch — someone might just be asking a genuine
+    // question (e.g. "what is this program?"). Try to actually answer it
+    // instead of blindly repeating the startup-pitch redirect regardless of
+    // what was asked.
+    const recentHistory = params.groupName
+      ? (await listMessages({ groupJid: params.chatJid, limit: 20 }))
+          .slice()
+          .reverse()
+          .map((m) => `${m.senderName}: ${m.text || `<${m.messageType}>`}`)
+          .join("\n")
+      : undefined;
+    const smartReply = await respondToNonPitch({ groupName: params.groupName, text: params.text, history: recentHistory });
+    if (smartReply) {
+      return { status: "replied", reply: isFirstContact ? `${PROMPTCRAFT_INTRO}${smartReply}` : smartReply };
+    }
+
     return { status: "no-pitch", isFirstContact };
   }
 

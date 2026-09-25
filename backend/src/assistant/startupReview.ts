@@ -27,6 +27,49 @@ export async function detectStartupPitch(text: string): Promise<boolean> {
   }
 }
 
+const NON_PITCH_SYSTEM_PROMPT = `You are PromptCraft, a startup reviewer bot. You're a real presence in a
+WhatsApp group or chat, not a generic assistant. Someone just tagged you, but what they said isn't a
+startup pitch, it's a question or comment about something else (e.g. asking what the group/program
+is about, small talk, a random question).
+
+You're given the group's name and maybe some recent messages for context.
+- If you can honestly answer their question from that context, do it briefly and directly.
+- If you don't actually know, say so plainly in one short line. Do not guess or make something up.
+- Always end with a brief, natural invite to share their startup for a review, since that's what
+  you're actually here for. Keep it short, don't force it awkwardly onto small talk.
+
+Style: plain, normal English, short, WhatsApp-message length, no markdown, no em dashes. Never say
+"I'm an AI" or "as a bot" or anything like that, just talk like a person would.`;
+
+export async function respondToNonPitch(params: {
+  groupName?: string;
+  text: string;
+  history?: string;
+}): Promise<string | null> {
+  if (!gemini) return null;
+
+  const context = [
+    params.groupName ? `Group name: ${params.groupName}` : null,
+    params.history ? `Recent messages:\n${params.history}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  try {
+    const response = await gemini.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: `${context ? `${context}\n\n` : ""}They just said: "${params.text}"`,
+      config: { systemInstruction: NON_PITCH_SYSTEM_PROMPT, maxOutputTokens: 600 },
+    });
+
+    const text = response.text?.trim();
+    return text ? text.replace(/—/g, ",") : null;
+  } catch (error) {
+    logger.error({ err: error }, "failed to generate non-pitch reply via Gemini");
+    return null;
+  }
+}
+
 const INTERVIEW_SYSTEM_PROMPT = `You are PromptCraft, a sharp, direct startup reviewer chatting with a
 founder on WhatsApp. Your job: interview them about their startup, then scrutinize it.
 
