@@ -4,6 +4,7 @@ import { registerMessageHandler } from "./whatsapp/messageHandler.js";
 import { registerMentionHandler } from "./whatsapp/mentionHandler.js";
 import { registerAutoAnswerHandler } from "./whatsapp/autoAnswerHandler.js";
 import { registerReminderHandler } from "./whatsapp/reminderHandler.js";
+import { registerStartupReviewHandler } from "./whatsapp/startupReviewHandler.js";
 import { startReminderScheduler } from "./whatsapp/reminderScheduler.js";
 import { startDigestScheduler } from "./whatsapp/digestScheduler.js";
 import { setActiveSocket } from "./whatsapp/activeSocket.js";
@@ -34,6 +35,7 @@ async function main() {
       registerMentionHandler(sock);
       registerAutoAnswerHandler(sock);
       registerReminderHandler(sock);
+      registerStartupReviewHandler(sock);
     },
     onQrCode: (dataUrl) => {
       realtime.broadcastQr(dataUrl);

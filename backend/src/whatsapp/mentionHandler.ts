@@ -5,6 +5,7 @@ import { getGroupAdmins } from "./admins.js";
 import { extractMessageText } from "./extractText.js";
 import { isBotMentioned } from "../assistant/mention.js";
 import { generateRecap } from "../assistant/recap.js";
+import { handleStartupReviewTurn } from "./startupReviewEngine.js";
 import { logger } from "./logger.js";
 
 const GROUP_SUFFIX = "@g.us";
@@ -31,6 +32,22 @@ export function registerMentionHandler(sock: WASocket): void {
 
       try {
         const { text } = extractMessageText(message);
+        const senderJid = message.key.participant ?? jid;
+
+        // PromptCraft's startup review takes priority over the generic recap
+        // when this mention is (or continues) a pitch — a founder shouldn't
+        // get both a recap AND a review reply for the same message.
+        const reviewResult = await handleStartupReviewTurn({
+          chatJid: jid,
+          senderJid,
+          senderName: message.pushName ?? "Unknown",
+          text,
+        });
+        if (reviewResult) {
+          await sock.sendMessage(jid, { text: reviewResult.reply }, { quoted: message });
+          continue;
+        }
+
         const groupMetadata = getCachedGroupMetadata(jid);
         const history = await listMessages({ groupJid: jid, limit: HISTORY_LIMIT });
 
