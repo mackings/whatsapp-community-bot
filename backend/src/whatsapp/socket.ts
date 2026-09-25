@@ -92,10 +92,20 @@ export async function startWhatsAppConnection(options: StartOptions = {}): Promi
 
     if (connection === "open") {
       logger.info("WhatsApp connection open");
-      options.onStatusChange?.("open");
       options.onQrCode?.(null);
-      await primeGroupCache(sock)();
+      // Register handlers and report "open" before touching the group
+      // cache — fetching metadata for every group is heavy (hundreds of
+      // groups) and can time out or throw. It used to run first and,
+      // unguarded, a failure there silently skipped onSocketReady entirely:
+      // the bot would sit there reporting "connected" while no message
+      // handler was ever attached and nothing it received got processed.
       options.onSocketReady?.(sock);
+      options.onStatusChange?.("open");
+      try {
+        await primeGroupCache(sock)();
+      } catch (error) {
+        logger.error({ error }, "failed to prime group cache — group list may be stale until next sync");
+      }
     } else if (connection === "connecting") {
       options.onStatusChange?.("connecting");
     } else if (connection === "close") {
