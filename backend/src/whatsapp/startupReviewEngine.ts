@@ -23,19 +23,27 @@ async function withOwnHistory(chatJid: string, senderJid: string, text: string):
   return ownHistoryText ? `${ownHistoryText}\n${text}`.trim() : text;
 }
 
+export type StartupReviewOutcome =
+  | { status: "replied"; reply: string }
+  | { status: "no-pitch" }
+  | { status: "error"; hasActiveReview: boolean };
+
 /**
  * Advances (or starts) a PromptCraft startup-review conversation for one
- * turn. Returns null when this message isn't part of a review and doesn't
+ * turn. "no-pitch" means this message isn't part of a review and doesn't
  * look like a new pitch, even with the sender's own recent history factored
- * in — callers should fall back to their normal behavior in that case.
+ * in — callers should fall back to their normal behavior. "error" means a
+ * review exists (or should have started) but Gemini failed — callers should
+ * NOT repeat the opening question in that case, since a review is already
+ * underway and that reads as the bot forgetting the whole conversation.
  */
 export async function handleStartupReviewTurn(params: {
   chatJid: string;
   senderJid: string;
   senderName: string;
   text: string;
-}): Promise<{ reply: string } | null> {
-  if (!params.text.trim()) return null;
+}): Promise<StartupReviewOutcome> {
+  if (!params.text.trim()) return { status: "no-pitch" };
 
   const active = await getActiveReview(params.chatJid, params.senderJid);
   const userTurn: ReviewTurn = { role: "user", text: params.text };
@@ -43,19 +51,19 @@ export async function handleStartupReviewTurn(params: {
   if (active) {
     const turns = [...active.turns, userTurn];
     const result = await continueInterview(turns);
-    if (!result) return null;
+    if (!result) return { status: "error", hasActiveReview: true };
 
     await appendTurns(active.id, [userTurn, { role: "model", text: result.reply }], result.isFinal);
-    return { reply: result.reply };
+    return { status: "replied", reply: result.reply };
   }
 
   const combinedText = await withOwnHistory(params.chatJid, params.senderJid, params.text);
   const looksLikePitch = await detectStartupPitch(combinedText);
-  if (!looksLikePitch) return null;
+  if (!looksLikePitch) return { status: "no-pitch" };
 
   const openingTurn: ReviewTurn = { role: "user", text: combinedText };
   const result = await continueInterview([openingTurn]);
-  if (!result) return null;
+  if (!result) return { status: "error", hasActiveReview: false };
 
   await startReview({
     chatJid: params.chatJid,
@@ -65,5 +73,5 @@ export async function handleStartupReviewTurn(params: {
     completed: result.isFinal,
   });
 
-  return { reply: result.reply };
+  return { status: "replied", reply: result.reply };
 }

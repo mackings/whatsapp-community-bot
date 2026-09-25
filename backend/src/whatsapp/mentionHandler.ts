@@ -58,7 +58,7 @@ export function registerMentionHandler(sock: WASocket): void {
         // into one reply. If this sender's own history/text doesn't read as
         // (or continue) a pitch, ask them directly instead of guessing.
         if (flags.startupReviewEnabled) {
-          const reviewResult = await handleStartupReviewTurn({
+          const outcome = await handleStartupReviewTurn({
             chatJid: jid,
             senderJid,
             senderName: message.pushName ?? "Unknown",
@@ -66,7 +66,11 @@ export function registerMentionHandler(sock: WASocket): void {
           });
 
           const reply =
-            reviewResult?.reply ?? "Tell me about your startup — what problem it solves and who it's for.";
+            outcome.status === "replied"
+              ? outcome.reply
+              : outcome.status === "error" && outcome.hasActiveReview
+                ? "Sorry, can you say that again?"
+                : "Tell me about your startup, what problem it solves and who it's for.";
           await sock.sendMessage(jid, { text: reply }, { quoted: message });
           continue;
         }

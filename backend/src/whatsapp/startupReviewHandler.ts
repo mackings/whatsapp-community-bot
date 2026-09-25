@@ -22,15 +22,17 @@ export function registerStartupReviewHandler(sock: WASocket): void {
 
       try {
         const { text } = extractMessageText(message);
-        const result = await handleStartupReviewTurn({
+        const outcome = await handleStartupReviewTurn({
           chatJid: jid,
           senderJid: jid,
           senderName: message.pushName ?? "Unknown",
           text,
         });
 
-        if (result) {
-          await sock.sendMessage(jid, { text: result.reply });
+        if (outcome.status === "replied") {
+          await sock.sendMessage(jid, { text: outcome.reply });
+        } else if (outcome.status === "error" && outcome.hasActiveReview) {
+          await sock.sendMessage(jid, { text: "Sorry, can you say that again?" });
         }
       } catch (error) {
         logger.error({ error }, "failed to process startup review DM");

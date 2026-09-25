@@ -48,6 +48,7 @@ Final scrutiny (when you're done interviewing):
 Style rules for every message:
 - Plain, normal English — short sentences, no markdown, no bullet points (this is a WhatsApp
   chat), no "Based on what you've shared" or other assistant-speak.
+- No em dashes (—). Use commas or separate sentences instead.
 - Never narrate your own process or intent — don't say "I'll take a look at it", "let me review
   this", "hard to roast without more details", or anything describing what you're about to do.
   Just do it: ask the real next question, or give the real critique, directly.
@@ -67,26 +68,42 @@ export interface InterviewResult {
   isFinal: boolean;
 }
 
+async function requestInterviewTurn(turns: ReviewTurn[]): Promise<InterviewResult | null> {
+  const response = await gemini!.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: turns.map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] })),
+    config: { systemInstruction: INTERVIEW_SYSTEM_PROMPT, maxOutputTokens: 1024 },
+  });
+
+  const raw = response.text?.trim();
+  if (!raw) return null;
+
+  // Prefer the outermost {...} block over a naive fence-strip — Gemini
+  // occasionally adds a stray word before/after the JSON despite
+  // instructions, which a strict JSON.parse on the whole trimmed string
+  // rejects outright and silently kills the whole turn.
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  const jsonText = jsonMatch ? jsonMatch[0] : raw.replace(/^```(json)?/i, "").replace(/```$/, "").trim();
+  const parsed = JSON.parse(jsonText) as InterviewResult;
+  return { reply: parsed.reply.replace(/—/g, ","), isFinal: parsed.isFinal };
+}
+
 export async function continueInterview(turns: ReviewTurn[]): Promise<InterviewResult | null> {
   if (!gemini) {
     logger.warn("GEMINI_API_KEY not set — skipping startup review turn");
     return null;
   }
 
-  try {
-    const response = await gemini.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: turns.map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] })),
-      config: { systemInstruction: INTERVIEW_SYSTEM_PROMPT, maxOutputTokens: 1024 },
-    });
-
-    const raw = response.text?.trim();
-    if (!raw) return null;
-
-    const jsonText = raw.replace(/^```(json)?/i, "").replace(/```$/, "").trim();
-    return JSON.parse(jsonText) as InterviewResult;
-  } catch (error) {
-    logger.error({ error }, "failed to continue startup review interview via Gemini");
-    return null;
+  // One retry — an occasional malformed response shouldn't make the bot
+  // look like it forgot the whole conversation and drop back to its
+  // opening question.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await requestInterviewTurn(turns);
+      if (result) return result;
+    } catch (error) {
+      logger.error({ error, attempt }, "failed to continue startup review interview via Gemini");
+    }
   }
+  return null;
 }
