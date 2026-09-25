@@ -17,7 +17,10 @@ export async function detectStartupPitch(text: string): Promise<boolean> {
     const response = await gemini.models.generateContent({
       model: GEMINI_MODEL,
       contents: text,
-      config: { systemInstruction: DETECT_SYSTEM_PROMPT, maxOutputTokens: 10 },
+      // thinkingBudget: 0 — gemini-2.5-flash's internal reasoning otherwise
+      // eats into maxOutputTokens, and 10 tokens leaves it none at all,
+      // silently emptying response.text for what should be a trivial call.
+      config: { systemInstruction: DETECT_SYSTEM_PROMPT, maxOutputTokens: 20, thinkingConfig: { thinkingBudget: 0 } },
     });
 
     return response.text?.trim().toUpperCase().startsWith("YES") ?? false;
@@ -32,9 +35,12 @@ WhatsApp group or chat, not a generic assistant. Someone just tagged you, but wh
 startup pitch, it's a question or comment about something else (e.g. asking what the group/program
 is about, small talk, a random question).
 
-You're given the group's name and maybe some recent messages for context.
-- If you can honestly answer their question from that context, do it briefly and directly.
-- If you don't actually know, say so plainly in one short line. Do not guess or make something up.
+You're given the group's name and maybe some recent messages for context. Actually think it through
+and answer using both that context and your own general knowledge, the same way you'd reason about
+anything else, don't limit yourself to only what's explicitly stated there.
+- Give a real, direct answer if you can reason your way to one, even if it takes a bit of inference.
+- Only say you don't know if you genuinely have no reasonable basis to answer, even with general
+  knowledge, don't fabricate specifics you're not actually sure of.
 - Always end with a brief, natural invite to share their startup for a review, since that's what
   you're actually here for. Keep it short, don't force it awkwardly onto small talk.
 
@@ -59,7 +65,11 @@ export async function respondToNonPitch(params: {
     const response = await gemini.models.generateContent({
       model: GEMINI_MODEL,
       contents: `${context ? `${context}\n\n` : ""}They just said: "${params.text}"`,
-      config: { systemInstruction: NON_PITCH_SYSTEM_PROMPT, maxOutputTokens: 600 },
+      config: {
+        systemInstruction: NON_PITCH_SYSTEM_PROMPT,
+        maxOutputTokens: 600,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     });
 
     const text = response.text?.trim();
