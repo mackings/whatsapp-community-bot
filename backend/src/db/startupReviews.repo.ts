@@ -7,7 +7,7 @@ export interface ReviewTurn {
   text: string;
 }
 
-export type ReviewStatus = "active" | "completed";
+export type ReviewStatus = "active" | "completed" | "greeted";
 
 export interface StartupReview {
   id: string;
@@ -38,6 +38,22 @@ function reviewId(chatJid: string, senderJid: string): string {
 export async function getActiveReview(chatJid: string, senderJid: string): Promise<StartupReview | null> {
   const doc = await reviews().findOne({ _id: reviewId(chatJid, senderJid), status: "active" });
   return doc ? toReview(doc) : null;
+}
+
+/** True once anything at all is on record for this sender in this chat — used to decide whether PromptCraft has ever introduced itself to them. */
+export async function hasAnyRecord(chatJid: string, senderJid: string): Promise<boolean> {
+  const doc = await reviews().findOne({ _id: reviewId(chatJid, senderJid) }, { projection: { _id: 1 } });
+  return doc !== null;
+}
+
+/** Marks a sender as greeted without starting a real review — used when their first-ever message doesn't read as a pitch, so the intro still only ever happens once. */
+export async function markGreeted(chatJid: string, senderJid: string, senderName: string): Promise<void> {
+  const now = Date.now();
+  await reviews().updateOne(
+    { _id: reviewId(chatJid, senderJid) },
+    { $setOnInsert: { chatJid, senderJid, senderName, status: "greeted", turns: [], createdAt: now, updatedAt: now } },
+    { upsert: true }
+  );
 }
 
 export async function startReview(params: {

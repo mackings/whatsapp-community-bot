@@ -1,6 +1,6 @@
 import type { WASocket } from "@whiskeysockets/baileys";
 import { extractMessageText } from "./extractText.js";
-import { handleStartupReviewTurn } from "./startupReviewEngine.js";
+import { handleStartupReviewTurn, PROMPTCRAFT_INTRO } from "./startupReviewEngine.js";
 import { logger } from "./logger.js";
 
 const GROUP_SUFFIX = "@g.us";
@@ -33,6 +33,10 @@ export function registerStartupReviewHandler(sock: WASocket): void {
           await sock.sendMessage(jid, { text: outcome.reply });
         } else if (outcome.status === "error" && outcome.hasActiveReview) {
           await sock.sendMessage(jid, { text: "Sorry, can you say that again?" });
+        } else if (outcome.status === "no-pitch" && outcome.isFirstContact) {
+          await sock.sendMessage(jid, {
+            text: `${PROMPTCRAFT_INTRO}Tell me about your startup, what problem it solves and who it's for.`,
+          });
         }
       } catch (error) {
         logger.error({ err: error }, "failed to process startup review DM");
