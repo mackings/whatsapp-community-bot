@@ -1,3 +1,4 @@
+import { Type } from "@google/genai";
 import { gemini, GEMINI_MODEL } from "./geminiClient.js";
 import { logger } from "../whatsapp/logger.js";
 import type { ReviewTurn } from "../db/startupReviews.repo.js";
@@ -57,9 +58,6 @@ Style rules for every message:
   problem this solves?").
 - The final scrutiny can be a bit longer than an interview question, but keep it skimmable.
 
-Respond with ONLY raw JSON, no markdown fences, no extra text, matching exactly this shape:
-{"reply": string, "isFinal": boolean}
-
 "isFinal" is true only when "reply" is the final scrutiny (you're done interviewing), false while
 you're still asking questions.`;
 
@@ -68,24 +66,43 @@ export interface InterviewResult {
   isFinal: boolean;
 }
 
+// Gemini reliably follows "respond with only JSON" most of the time but not
+// always — it occasionally answers in plain conversational text instead,
+// which broke every turn whose response happened to contain no "{...}" at
+// all. responseSchema forces the model's actual decoding to produce valid
+// JSON matching this shape, instead of just hoping the prompt is obeyed.
+const INTERVIEW_RESPONSE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    reply: { type: Type.STRING },
+    isFinal: { type: Type.BOOLEAN },
+  },
+  required: ["reply", "isFinal"],
+};
+
 async function requestInterviewTurn(turns: ReviewTurn[]): Promise<InterviewResult | null> {
   const response = await gemini!.models.generateContent({
     model: GEMINI_MODEL,
     contents: turns.map((turn) => ({ role: turn.role, parts: [{ text: turn.text }] })),
-    config: { systemInstruction: INTERVIEW_SYSTEM_PROMPT, maxOutputTokens: 1024 },
+    config: {
+      systemInstruction: INTERVIEW_SYSTEM_PROMPT,
+      maxOutputTokens: 1024,
+      responseMimeType: "application/json",
+      responseSchema: INTERVIEW_RESPONSE_SCHEMA,
+    },
   });
 
   const raw = response.text?.trim();
   if (!raw) return null;
 
-  // Prefer the outermost {...} block over a naive fence-strip — Gemini
-  // occasionally adds a stray word before/after the JSON despite
-  // instructions, which a strict JSON.parse on the whole trimmed string
-  // rejects outright and silently kills the whole turn.
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
-  const jsonText = jsonMatch ? jsonMatch[0] : raw.replace(/^```(json)?/i, "").replace(/```$/, "").trim();
-  const parsed = JSON.parse(jsonText) as InterviewResult;
-  return { reply: parsed.reply.replace(/—/g, ","), isFinal: parsed.isFinal };
+  try {
+    const parsed = JSON.parse(raw) as InterviewResult;
+    return { reply: parsed.reply.replace(/—/g, ","), isFinal: parsed.isFinal };
+  } catch {
+    // Belt and suspenders: if it somehow still isn't valid JSON, use the
+    // raw text as the reply directly rather than failing the turn outright.
+    return { reply: raw.replace(/—/g, ","), isFinal: false };
+  }
 }
 
 export async function continueInterview(turns: ReviewTurn[]): Promise<InterviewResult | null> {
