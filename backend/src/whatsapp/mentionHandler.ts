@@ -1,5 +1,5 @@
 import type { WASocket } from "@whiskeysockets/baileys";
-import { listMessages, getGroupFlags } from "../db/messages.repo.js";
+import { listMessages, getGroupFlags, getMessageById } from "../db/messages.repo.js";
 import { getCachedGroupMetadata } from "./groupCache.js";
 import { getGroupAdmins } from "./admins.js";
 import { extractMessageText } from "./extractText.js";
@@ -35,6 +35,22 @@ export function registerMentionHandler(sock: WASocket): void {
         const { text } = extractMessageText(message);
         const senderJid = message.key.participant ?? jid;
 
+        // A tag often reads "@bot" on its own, replying to an earlier
+        // message that actually has the content (e.g. someone pitches their
+        // startup, then replies to their own message with just the mention
+        // to get the bot's attention) — pull the quoted text in so pitch
+        // detection sees the real content, not just the bare tag.
+        const contextInfo = message.message.extendedTextMessage?.contextInfo;
+        const quotedId = contextInfo?.stanzaId;
+        const quotedMessage = contextInfo?.quotedMessage;
+        let effectiveText = text;
+        if (quotedId && quotedMessage) {
+          const stored = await getMessageById(quotedId);
+          const quotedText =
+            stored?.text || quotedMessage.conversation || quotedMessage.extendedTextMessage?.text || "";
+          if (quotedText) effectiveText = `${quotedText}\n${text}`.trim();
+        }
+
         // PromptCraft's startup review takes priority over the generic recap
         // when this mention is (or continues) a pitch — a founder shouldn't
         // get both a recap AND a review reply for the same message. Gated
@@ -45,7 +61,7 @@ export function registerMentionHandler(sock: WASocket): void {
               chatJid: jid,
               senderJid,
               senderName: message.pushName ?? "Unknown",
-              text,
+              text: effectiveText,
             })
           : null;
         if (reviewResult) {
