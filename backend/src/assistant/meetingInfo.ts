@@ -41,7 +41,7 @@ export async function extractMeetingInfo(params: { text: string; postedAt: numbe
     const parsedTime = parsed.meetingTimeISO ? new Date(parsed.meetingTimeISO).getTime() : null;
     return { label: parsed.label, meetingTime: parsedTime && !Number.isNaN(parsedTime) ? parsedTime : null };
   } catch (error) {
-    logger.error({ error }, "failed to extract meeting info via Gemini");
+    logger.error({ err: error }, "failed to extract meeting info via Gemini");
     return null;
   }
 }

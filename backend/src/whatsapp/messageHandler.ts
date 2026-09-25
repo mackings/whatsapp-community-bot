@@ -71,7 +71,7 @@ export function registerMessageHandler(
           });
         }
       } catch (error) {
-        logger.error({ error }, "failed to process incoming message");
+        logger.error({ err: error }, "failed to process incoming message");
       }
     }
   });

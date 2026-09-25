@@ -49,7 +49,7 @@ export function registerAutoAnswerHandler(sock: WASocket): void {
           await sock.sendMessage(jid, { text: answer.text, mentions: answer.mentions }, { quoted: message });
         }
       } catch (error) {
-        logger.error({ error }, "failed to auto-answer question");
+        logger.error({ err: error }, "failed to auto-answer question");
       }
     }
   });

@@ -76,7 +76,7 @@ export function registerReminderHandler(sock: WASocket): void {
           { quoted: message }
         );
       } catch (error) {
-        logger.error({ error }, "failed to process reminder request");
+        logger.error({ err: error }, "failed to process reminder request");
       }
     }
   });

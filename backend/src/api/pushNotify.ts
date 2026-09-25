@@ -24,7 +24,7 @@ export async function sendPushToAllSubscribers(payload: { title: string; body: s
         if (error instanceof WebPushError && (error.statusCode === 404 || error.statusCode === 410)) {
           await removeSubscription(subscription.endpoint);
         } else {
-          logger.error({ error }, "failed to send push notification");
+          logger.error({ err: error }, "failed to send push notification");
         }
       }
     })

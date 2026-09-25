@@ -56,7 +56,7 @@ Reply (tagging the bot): "${params.replyText}"`;
     const jsonText = raw.replace(/^```(json)?/i, "").replace(/```$/, "").trim();
     return JSON.parse(jsonText) as ReminderExtraction;
   } catch (error) {
-    logger.error({ error }, "failed to extract reminder request via Gemini");
+    logger.error({ err: error }, "failed to extract reminder request via Gemini");
     return null;
   }
 }

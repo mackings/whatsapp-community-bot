@@ -21,7 +21,7 @@ export function startReminderScheduler(): void {
         });
         await markReminderStatus(reminder.id, "sent");
       } catch (error) {
-        logger.error({ error, reminderId: reminder.id }, "failed to send reminder DM");
+        logger.error({ err: error, reminderId: reminder.id }, "failed to send reminder DM");
         await markReminderStatus(reminder.id, "failed");
       }
     }

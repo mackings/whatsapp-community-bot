@@ -9,7 +9,7 @@ authRouter.post("/logout", async (_req, res) => {
     await logoutAndRelink();
     res.json({ ok: true });
   } catch (error) {
-    logger.error({ error }, "logout request failed");
+    logger.error({ err: error }, "logout request failed");
     res.status(500).json({ error: "failed to logout" });
   }
 });

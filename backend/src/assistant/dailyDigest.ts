@@ -40,7 +40,7 @@ export async function generateDailyDigest(params: {
 
     return response.text ?? null;
   } catch (error) {
-    logger.error({ error }, "failed to generate daily digest via Gemini");
+    logger.error({ err: error }, "failed to generate daily digest via Gemini");
     return null;
   }
 }

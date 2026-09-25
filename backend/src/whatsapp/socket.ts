@@ -79,7 +79,7 @@ export async function startWhatsAppConnection(options: StartOptions = {}): Promi
     try {
       await handleConnectionUpdate(update);
     } catch (error) {
-      logger.error({ error }, "unhandled error in connection.update — connection kept alive");
+      logger.error({ err: error }, "unhandled error in connection.update — connection kept alive");
     }
   });
 
@@ -104,7 +104,7 @@ export async function startWhatsAppConnection(options: StartOptions = {}): Promi
       try {
         await primeGroupCache(sock)();
       } catch (error) {
-        logger.error({ error }, "failed to prime group cache — group list may be stale until next sync");
+        logger.error({ err: error }, "failed to prime group cache — group list may be stale until next sync");
       }
     } else if (connection === "connecting") {
       options.onStatusChange?.("connecting");
@@ -118,14 +118,14 @@ export async function startWhatsAppConnection(options: StartOptions = {}): Promi
         // small backoff so a flapping connection doesn't hot-loop reconnects
         setTimeout(() => {
           startWhatsAppConnection(options).catch((error) =>
-            logger.error({ error }, "reconnect attempt failed")
+            logger.error({ err: error }, "reconnect attempt failed")
           );
         }, 2000);
       } else {
         logger.error("logged out from WhatsApp — clearing session and starting a fresh link");
         await clearAuthState();
         startWhatsAppConnection(options).catch((error) =>
-          logger.error({ error }, "restart after logout failed")
+          logger.error({ err: error }, "restart after logout failed")
         );
       }
     }

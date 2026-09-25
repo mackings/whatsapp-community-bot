@@ -33,7 +33,7 @@ export function primeGroupCache(sock: WASocket) {
         cache.set(metadata.id, metadata);
         await persist(metadata);
       } catch (error) {
-        logger.error({ error, groupJid: metadata.id }, "failed to persist group metadata");
+        logger.error({ err: error, groupJid: metadata.id }, "failed to persist group metadata");
       }
     }
     return groups;
@@ -48,7 +48,7 @@ export function watchGroupUpdates(sock: WASocket): void {
       cache.set(metadata.id, metadata);
       await persist(metadata);
     } catch (error) {
-      logger.error({ error, groupJid: event.id }, "failed to handle groups.update");
+      logger.error({ err: error, groupJid: event.id }, "failed to handle groups.update");
     }
   });
 
@@ -58,7 +58,7 @@ export function watchGroupUpdates(sock: WASocket): void {
       cache.set(metadata.id, metadata);
       await persist(metadata);
     } catch (error) {
-      logger.error({ error, groupJid: event.id }, "failed to handle group-participants.update");
+      logger.error({ err: error, groupJid: event.id }, "failed to handle group-participants.update");
     }
   });
 }

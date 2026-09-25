@@ -21,7 +21,7 @@ export async function detectStartupPitch(text: string): Promise<boolean> {
 
     return response.text?.trim().toUpperCase().startsWith("YES") ?? false;
   } catch (error) {
-    logger.error({ error }, "failed to classify startup pitch via Gemini");
+    logger.error({ err: error }, "failed to classify startup pitch via Gemini");
     return false;
   }
 }
@@ -94,15 +94,20 @@ export async function continueInterview(turns: ReviewTurn[]): Promise<InterviewR
     return null;
   }
 
-  // One retry — an occasional malformed response shouldn't make the bot
-  // look like it forgot the whole conversation and drop back to its
-  // opening question.
+  // One retry with a short delay — an occasional malformed response or a
+  // rate-limit blip shouldn't make the bot look like it forgot the whole
+  // conversation and drop back to its opening question. An instant retry
+  // wouldn't help at all against rate limiting specifically, hence the wait.
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1500));
       const result = await requestInterviewTurn(turns);
       if (result) return result;
     } catch (error) {
-      logger.error({ error, attempt }, "failed to continue startup review interview via Gemini");
+      // pino only auto-unpacks a plain Error's (non-enumerable) message and
+      // stack for a key literally named "err" — anything else serializes to
+      // "{}" and the real failure reason is lost.
+      logger.error({ err: error, attempt }, "failed to continue startup review interview via Gemini");
     }
   }
   return null;

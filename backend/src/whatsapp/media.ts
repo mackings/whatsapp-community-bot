@@ -66,7 +66,7 @@ export async function downloadAndStoreMedia(
 
     return `/media/${filename}`;
   } catch (error) {
-    logger.error({ error }, "failed to download media message");
+    logger.error({ err: error }, "failed to download media message");
     return null;
   }
 }

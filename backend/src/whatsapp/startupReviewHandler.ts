@@ -35,7 +35,7 @@ export function registerStartupReviewHandler(sock: WASocket): void {
           await sock.sendMessage(jid, { text: "Sorry, can you say that again?" });
         }
       } catch (error) {
-        logger.error({ error }, "failed to process startup review DM");
+        logger.error({ err: error }, "failed to process startup review DM");
       }
     }
   });

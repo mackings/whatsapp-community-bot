@@ -89,7 +89,7 @@ export function startDigestScheduler(): void {
 
         await setLastSentDate(group.jid, period, todayKey);
       } catch (error) {
-        logger.error({ error, groupJid: group.jid, period }, "failed to send daily digest");
+        logger.error({ err: error, groupJid: group.jid, period }, "failed to send daily digest");
       }
     }
   }, CHECK_INTERVAL_MS);

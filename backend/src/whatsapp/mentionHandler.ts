@@ -90,7 +90,7 @@ export function registerMentionHandler(sock: WASocket): void {
           await sock.sendMessage(jid, { text: reply.text, mentions: reply.mentions }, { quoted: message });
         }
       } catch (error) {
-        logger.error({ error }, "failed to respond to mention");
+        logger.error({ err: error }, "failed to respond to mention");
       }
     }
   });

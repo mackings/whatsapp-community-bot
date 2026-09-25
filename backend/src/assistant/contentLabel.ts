@@ -25,7 +25,7 @@ export async function generateContentLabel(params: { text: string; messageType: 
 
     return response.text?.trim() || null;
   } catch (error) {
-    logger.error({ error }, "failed to generate content label via Gemini");
+    logger.error({ err: error }, "failed to generate content label via Gemini");
     return null;
   }
 }

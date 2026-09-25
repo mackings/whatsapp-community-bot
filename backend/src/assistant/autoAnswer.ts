@@ -66,7 +66,7 @@ export async function evaluateAutoAnswer(params: {
 
     return { text: parsed.text, mentions: extractAdminMentions(parsed.text, params.admins) };
   } catch (error) {
-    logger.error({ error }, "failed to evaluate auto-answer via Gemini");
+    logger.error({ err: error }, "failed to evaluate auto-answer via Gemini");
     return null;
   }
 }

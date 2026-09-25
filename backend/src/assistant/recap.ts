@@ -62,7 +62,7 @@ export async function generateRecap(params: {
 
     return { text, mentions: extractAdminMentions(text, params.admins) };
   } catch (error) {
-    logger.error({ error }, "failed to generate recap via Gemini");
+    logger.error({ err: error }, "failed to generate recap via Gemini");
     return null;
   }
 }
