@@ -12,7 +12,9 @@ import { listMessages } from "../db/messages.repo.js";
 const OWN_HISTORY_LIMIT = 20;
 
 export const PROMPTCRAFT_INTRO =
-  "Hey, I'm PromptCraft. Most bots just handle group messages, I do that too, but what I'm really here for is startups. ";
+  "Hey, I'm PromptCraft. Most bots just handle group messages, I do that too, but what I'm really here for is startups. I'll play investor and put you in the hotseat, let's talk innovation and solutions. ";
+
+export const PROMPTCRAFT_NUDGE = "Tell me the problem your startup solves and who it's for.";
 
 /**
  * A fresh mention is often fragmented across several of the sender's own

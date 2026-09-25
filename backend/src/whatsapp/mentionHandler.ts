@@ -5,7 +5,7 @@ import { getGroupAdmins } from "./admins.js";
 import { extractMessageText } from "./extractText.js";
 import { isBotMentioned } from "../assistant/mention.js";
 import { generateRecap } from "../assistant/recap.js";
-import { handleStartupReviewTurn, PROMPTCRAFT_INTRO } from "./startupReviewEngine.js";
+import { handleStartupReviewTurn, PROMPTCRAFT_INTRO, PROMPTCRAFT_NUDGE } from "./startupReviewEngine.js";
 import { logger } from "./logger.js";
 
 const GROUP_SUFFIX = "@g.us";
@@ -65,15 +65,14 @@ export function registerMentionHandler(sock: WASocket): void {
             text: effectiveText,
           });
 
-          const nudge = "Tell me about your startup, what problem it solves and who it's for.";
           const reply =
             outcome.status === "replied"
               ? outcome.reply
               : outcome.status === "error" && outcome.hasActiveReview
                 ? "Sorry, can you say that again?"
                 : outcome.status === "no-pitch" && outcome.isFirstContact
-                  ? `${PROMPTCRAFT_INTRO}${nudge}`
-                  : nudge;
+                  ? `${PROMPTCRAFT_INTRO}${PROMPTCRAFT_NUDGE}`
+                  : PROMPTCRAFT_NUDGE;
           await sock.sendMessage(jid, { text: reply }, { quoted: message });
           continue;
         }
