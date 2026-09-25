@@ -87,11 +87,13 @@ export async function totalMessageCount(groupJid?: string): Promise<number> {
   return messages().countDocuments(groupJid ? { groupJid } : {});
 }
 
-export async function saveGroup(group: Omit<GroupInfo, "learnEnabled" | "respondEnabled">): Promise<void> {
+export async function saveGroup(
+  group: Omit<GroupInfo, "learnEnabled" | "respondEnabled" | "startupReviewEnabled">
+): Promise<void> {
   const { jid, ...rest } = group;
   await groups().updateOne(
     { _id: jid },
-    { $set: rest, $setOnInsert: { learnEnabled: false, respondEnabled: false } },
+    { $set: rest, $setOnInsert: { learnEnabled: false, respondEnabled: false, startupReviewEnabled: false } },
     { upsert: true }
   );
 }
@@ -101,19 +103,26 @@ export async function listGroups(): Promise<GroupInfo[]> {
   return docs.map(toGroupInfo).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
-export async function getGroupFlags(jid: string): Promise<{ learnEnabled: boolean; respondEnabled: boolean } | null> {
+export async function getGroupFlags(
+  jid: string
+): Promise<{ learnEnabled: boolean; respondEnabled: boolean; startupReviewEnabled: boolean } | null> {
   const doc = await groups().findOne({ _id: jid });
   if (!doc) return null;
-  return { learnEnabled: Boolean(doc.learnEnabled), respondEnabled: Boolean(doc.respondEnabled) };
+  return {
+    learnEnabled: Boolean(doc.learnEnabled),
+    respondEnabled: Boolean(doc.respondEnabled),
+    startupReviewEnabled: Boolean(doc.startupReviewEnabled),
+  };
 }
 
 export async function setGroupFlags(
   jid: string,
-  flags: { learnEnabled?: boolean; respondEnabled?: boolean }
+  flags: { learnEnabled?: boolean; respondEnabled?: boolean; startupReviewEnabled?: boolean }
 ): Promise<void> {
   const update: Record<string, boolean> = {};
   if (flags.learnEnabled !== undefined) update.learnEnabled = flags.learnEnabled;
   if (flags.respondEnabled !== undefined) update.respondEnabled = flags.respondEnabled;
+  if (flags.startupReviewEnabled !== undefined) update.startupReviewEnabled = flags.startupReviewEnabled;
   if (Object.keys(update).length === 0) return;
 
   await groups().updateOne({ _id: jid }, { $set: update });

@@ -47,7 +47,7 @@ export function logoutWhatsApp() {
 
 export async function updateGroupSettings(
   jid: string,
-  settings: { learnEnabled?: boolean; respondEnabled?: boolean }
+  settings: { learnEnabled?: boolean; respondEnabled?: boolean; startupReviewEnabled?: boolean }
 ): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/api/groups/${encodeURIComponent(jid)}/settings`, {
     method: "PATCH",

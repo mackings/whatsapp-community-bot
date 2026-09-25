@@ -23,8 +23,15 @@ export function ManageGroups({ onBack }: { onBack: () => void }) {
   }
 
   async function toggleRespond(group: GroupSummary, value: boolean) {
-    setGroups((prev) => prev.map((g) => (g.jid === group.jid ? { ...g, respondEnabled: value } : g)));
-    await updateGroupSettings(group.jid, { respondEnabled: value });
+    // turning respond off also turns off PromptCraft, since it requires respond
+    const next = { respondEnabled: value, startupReviewEnabled: value ? group.startupReviewEnabled : false };
+    setGroups((prev) => prev.map((g) => (g.jid === group.jid ? { ...g, ...next } : g)));
+    await updateGroupSettings(group.jid, next);
+  }
+
+  async function toggleStartupReview(group: GroupSummary, value: boolean) {
+    setGroups((prev) => prev.map((g) => (g.jid === group.jid ? { ...g, startupReviewEnabled: value } : g)));
+    await updateGroupSettings(group.jid, { startupReviewEnabled: value });
   }
 
   const filtered = groups.filter((g) => g.name.toLowerCase().includes(query.toLowerCase()));
@@ -70,6 +77,7 @@ export function ManageGroups({ onBack }: { onBack: () => void }) {
                     group={group}
                     onToggleLearn={toggleLearn}
                     onToggleRespond={toggleRespond}
+                    onToggleStartupReview={toggleStartupReview}
                   />
                 ))}
               </div>
@@ -87,6 +95,7 @@ export function ManageGroups({ onBack }: { onBack: () => void }) {
                   group={group}
                   onToggleLearn={toggleLearn}
                   onToggleRespond={toggleRespond}
+                  onToggleStartupReview={toggleStartupReview}
                 />
               ))}
             </div>
@@ -101,10 +110,12 @@ function GroupRow({
   group,
   onToggleLearn,
   onToggleRespond,
+  onToggleStartupReview,
 }: {
   group: GroupSummary;
   onToggleLearn: (group: GroupSummary, value: boolean) => void;
   onToggleRespond: (group: GroupSummary, value: boolean) => void;
+  onToggleStartupReview: (group: GroupSummary, value: boolean) => void;
 }) {
   return (
     <div className="flex items-center gap-4 rounded-lg border border-surface-border bg-surface-raised px-4 py-3">
@@ -122,6 +133,14 @@ function GroupRow({
           checked={group.respondEnabled}
           onChange={(v) => onToggleRespond(group, v)}
           disabled={!group.learnEnabled}
+        />
+      </label>
+      <label className="flex items-center gap-2 text-xs text-slate-400">
+        PromptCraft
+        <Switch
+          checked={group.startupReviewEnabled}
+          onChange={(v) => onToggleStartupReview(group, v)}
+          disabled={!group.respondEnabled}
         />
       </label>
     </div>

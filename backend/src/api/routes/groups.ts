@@ -27,13 +27,13 @@ groupsRouter.get("/", async (_req, res) => {
 
 groupsRouter.patch("/:jid/settings", async (req, res) => {
   const { jid } = req.params;
-  const { learnEnabled, respondEnabled } = req.body ?? {};
+  const { learnEnabled, respondEnabled, startupReviewEnabled } = req.body ?? {};
 
-  if (learnEnabled === undefined && respondEnabled === undefined) {
-    res.status(400).json({ error: "provide learnEnabled and/or respondEnabled" });
+  if (learnEnabled === undefined && respondEnabled === undefined && startupReviewEnabled === undefined) {
+    res.status(400).json({ error: "provide learnEnabled, respondEnabled, and/or startupReviewEnabled" });
     return;
   }
 
-  await setGroupFlags(jid, { learnEnabled, respondEnabled });
+  await setGroupFlags(jid, { learnEnabled, respondEnabled, startupReviewEnabled });
   res.json({ ok: true });
 });

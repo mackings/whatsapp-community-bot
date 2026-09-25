@@ -27,7 +27,8 @@ export function registerMentionHandler(sock: WASocket): void {
       const jid = message.key.remoteJid;
       if (!jid || !jid.endsWith(GROUP_SUFFIX)) continue;
       if (!message.message || message.key.fromMe) continue;
-      if (!(await getGroupFlags(jid))?.respondEnabled) continue;
+      const flags = await getGroupFlags(jid);
+      if (!flags?.respondEnabled) continue;
       if (!isBotMentioned(message, sock)) continue;
 
       try {
@@ -36,13 +37,17 @@ export function registerMentionHandler(sock: WASocket): void {
 
         // PromptCraft's startup review takes priority over the generic recap
         // when this mention is (or continues) a pitch — a founder shouldn't
-        // get both a recap AND a review reply for the same message.
-        const reviewResult = await handleStartupReviewTurn({
-          chatJid: jid,
-          senderJid,
-          senderName: message.pushName ?? "Unknown",
-          text,
-        });
+        // get both a recap AND a review reply for the same message. Gated
+        // per-group separately from respondEnabled so it can be piloted in
+        // one test group without changing recap/auto-answer elsewhere.
+        const reviewResult = flags.startupReviewEnabled
+          ? await handleStartupReviewTurn({
+              chatJid: jid,
+              senderJid,
+              senderName: message.pushName ?? "Unknown",
+              text,
+            })
+          : null;
         if (reviewResult) {
           await sock.sendMessage(jid, { text: reviewResult.reply }, { quoted: message });
           continue;

@@ -35,6 +35,7 @@ export interface GroupInfo {
   lastSyncedAt: number;
   learnEnabled: boolean;
   respondEnabled: boolean;
+  startupReviewEnabled: boolean;
 }
 
 export interface GroupSummary extends GroupInfo {
